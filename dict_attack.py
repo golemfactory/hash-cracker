@@ -13,6 +13,11 @@ from yapapi.log import enable_default_logger, log_event_repr, log_summary
 from yapapi.package import vm
 from yapapi.rest.activity import BatchTimeoutError
 
+from worker import HASH_PATH, PARAMS_PATH, RESULT_PATH
+
+WORKER_COUNT = 2
+TASK_TIMEOUT = timedelta(minutes=10)
+WORKER_TIMEOUT = timedelta(seconds=120)
 
 def data(dict_file: Path, chunk_count: int) -> Iterator[Task]:
     with dict_file.open() as f:
@@ -32,21 +37,22 @@ async def worker(context: WorkContext, tasks: AsyncIterable[Task]):
         script_dir = Path(__file__).resolve().parent
         hash_path = str(script_dir / "hash.json")
 
-        context.send_json("/golem/input/params.json", task.data)
-        context.send_file(hash_path, "/golem/input/hash.json")
+        context.send_json(str(PARAMS_PATH), task.data)
+        context.send_file(hash_path, str(HASH_PATH))
 
         context.run("/golem/entrypoint/worker.py")
 
         output_file = NamedTemporaryFile()
-        context.download_file("/golem/output/result.json", output_file.name)
+        context.download_file(RESULT_PATH, output_file.name)
 
         try:
-            yield context.commit(timeout=timedelta(seconds=120))
+            yield context.commit(timeout=WORKER_TIMEOUT)
             task.accept_result(result=json.load(output_file))
-            output_file.close()
         except BatchTimeoutError:
             print(f"task timed out: {context.provider_name}, {task.running_time}")
             raise
+        finally:
+            output_file.close()
 
 
 async def main():
@@ -61,12 +67,12 @@ async def main():
         budget=1,
         subnet_tag="goth",
         event_consumer=log_summary(log_event_repr),
-        timeout=timedelta(minutes=10),
+        timeout=TASK_TIMEOUT,
     )
 
     result = ""
     async with executor:
-        async for task in executor.submit(worker, data(Path("dict.txt"), 2)):
+        async for task in executor.submit(worker, data(Path("dict.txt"), WORKER_COUNT)):
             print(
                 f"task computed: {task}, result: {task.result}, time: {task.running_time}"
             )
