@@ -8,7 +8,7 @@ from typing import List
 ENCODING = "utf-8"
 
 HASH_PATH = Path("/golem/input/hash.json")
-PARAMS_PATH = Path("/golem/input/params.json")
+PARAMS_PATH = Path("/golem/input/words.json")
 RESULT_PATH = Path("/golem/output/result.json")
 
 if __name__ == "__main__":
