@@ -8,7 +8,7 @@ from typing import List
 ENCODING = "utf-8"
 
 HASH_PATH = Path("/golem/input/hash.json")
-PARAMS_PATH = Path("/golem/input/words.json")
+WORDS_PATH = Path("/golem/input/words.json")
 RESULT_PATH = Path("/golem/output/result.json")
 
 if __name__ == "__main__":
@@ -17,7 +17,7 @@ if __name__ == "__main__":
     with HASH_PATH.open() as f:
         target_hash: str = json.load(f)
 
-    with PARAMS_PATH.open() as f:
+    with WORDS_PATH.open() as f:
         words: List[str] = json.load(f)
         for line in words:
             line_bytes = bytes(line.strip(), ENCODING)

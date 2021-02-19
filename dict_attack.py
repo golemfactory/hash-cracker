@@ -12,11 +12,12 @@ from yapapi import Executor, Task, WorkContext
 from yapapi.log import enable_default_logger, log_event_repr, log_summary
 from yapapi.package import vm
 
-from worker import HASH_PATH, PARAMS_PATH, RESULT_PATH
+from worker import HASH_PATH, WORDS_PATH, RESULT_PATH
 
 WORKER_COUNT = 2
 TASK_TIMEOUT = timedelta(minutes=10)
 WORKER_TIMEOUT = timedelta(seconds=120)
+
 
 def data(dict_file: Path, chunk_count: int) -> Iterator[Task]:
     with dict_file.open() as f:
@@ -34,7 +35,7 @@ async def worker(context: WorkContext, tasks: AsyncIterable[Task]):
         script_dir = Path(__file__).resolve().parent
         hash_path = str(script_dir / "hash.json")
 
-        context.send_json(str(PARAMS_PATH), task.data)
+        context.send_json(str(WORDS_PATH), task.data)
         context.send_file(hash_path, str(HASH_PATH))
 
         context.run("/golem/entrypoint/worker.py")
@@ -65,18 +66,17 @@ async def main():
     result = ""
     async with executor:
         # exit early?
-        async for task in executor.submit(worker, data(Path("dict.txt"), WORKER_COUNT)):
-            print(
-                f"task computed: {task}, result: {task.result}, time: {task.running_time}"
-            )
+        data_iterator = data(Path("words-short.txt"), WORKER_COUNT)
+        async for task in executor.submit(worker, data_iterator):
+            print(f"task computed: {task}, result: {task.result}")
 
             if task.result:
                 result = task.result
 
         if result:
-            print(f'Found matching word: {result}')
+            print(f"Found matching word: {result}")
         else:
-            print('No matching words found.')
+            print("No matching words found.")
 
 
 if __name__ == "__main__":
