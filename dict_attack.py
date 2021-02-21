@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import argparse
 import asyncio
 from datetime import timedelta
 import json
@@ -18,6 +19,13 @@ WORKER_COUNT = 2
 TASK_TIMEOUT = timedelta(minutes=10)
 WORKER_TIMEOUT = timedelta(seconds=120)
 
+hash_path = Path("hash.json")
+words_path = Path("words-short.txt")
+
+arg_parser = argparse.ArgumentParser()
+arg_parser.add_argument("--hash", type=Path, default=hash_path)
+arg_parser.add_argument("--words", type=Path, default=words_path)
+
 
 def data(dict_file: Path, chunk_count: int) -> Iterator[Task]:
     with dict_file.open() as f:
@@ -32,11 +40,8 @@ def data(dict_file: Path, chunk_count: int) -> Iterator[Task]:
 
 async def worker(context: WorkContext, tasks: AsyncIterable[Task]):
     async for task in tasks:
-        script_dir = Path(__file__).resolve().parent
-        hash_path = str(script_dir / "hash.json")
-
         context.send_json(str(WORDS_PATH), task.data)
-        context.send_file(hash_path, str(HASH_PATH))
+        context.send_file(str(hash_path), str(HASH_PATH))
 
         context.run("/golem/entrypoint/worker.py")
 
@@ -65,8 +70,7 @@ async def main():
 
     result = ""
     async with executor:
-        # exit early?
-        data_iterator = data(Path("words-short.txt"), WORKER_COUNT)
+        data_iterator = data(words_path, WORKER_COUNT)
         async for task in executor.submit(worker, data_iterator):
             print(f"task computed: {task}, result: {task.result}")
 
@@ -80,6 +84,10 @@ async def main():
 
 
 if __name__ == "__main__":
+    args = arg_parser.parse_args()
+    hash_path = args.hash
+    words_path = args.words
+
     loop = asyncio.get_event_loop()
     task = loop.create_task(main())
 
