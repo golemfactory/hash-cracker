@@ -15,16 +15,17 @@ from yapapi.package import vm
 
 from worker import HASH_PATH, WORDS_PATH, RESULT_PATH
 
-WORKER_COUNT = 2
 TASK_TIMEOUT = timedelta(minutes=10)
 WORKER_TIMEOUT = timedelta(seconds=120)
 
 hash_path = Path("hash.json")
 words_path = Path("words-short.txt")
+workers_count = 4
 
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument("--hash", type=Path, default=hash_path)
 arg_parser.add_argument("--words", type=Path, default=words_path)
+arg_parser.add_argument("--workers", type=Path, default=workers_count)
 
 
 def data(dict_file: Path, chunk_count: int) -> Iterator[Task]:
@@ -70,7 +71,7 @@ async def main():
 
     result = ""
     async with executor:
-        data_iterator = data(words_path, WORKER_COUNT)
+        data_iterator = data(words_path, workers_count)
         async for task in executor.submit(worker, data_iterator):
             print(f"task computed: {task}, result: {task.result}")
 
