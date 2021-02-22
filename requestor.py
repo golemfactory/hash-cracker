@@ -33,7 +33,7 @@ def data(dict_file: Path, chunk_count: int) -> Iterator[Task]:
     chunk_size = math.ceil(len(lines) / chunk_count)
 
     for i in range(0, len(lines), chunk_size):
-        chunk = lines[i:i + chunk_size]
+        chunk = lines[i : i + chunk_size]
         yield Task(data=chunk)
 
 
@@ -62,7 +62,7 @@ async def main():
     executor = Executor(
         package=package,
         budget=1,
-        subnet_tag="goth",
+        subnet_tag="devnet-beta.1",
         event_consumer=log_summary(log_event_repr),
         timeout=TASK_TIMEOUT,
     )
