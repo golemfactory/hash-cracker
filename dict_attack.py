@@ -15,17 +15,15 @@ from yapapi.package import vm
 
 from worker import HASH_PATH, WORDS_PATH, RESULT_PATH
 
+arg_parser = argparse.ArgumentParser()
+arg_parser.add_argument("--hash", type=Path, default=Path("hash.json"))
+arg_parser.add_argument("--words", type=Path, default=Path("words-short.txt"))
+arg_parser.add_argument("--workers", type=Path, default=2)
+
+args = argparse.Namespace()
+
 TASK_TIMEOUT = timedelta(minutes=10)
 WORKER_TIMEOUT = timedelta(seconds=120)
-
-hash_path = Path("hash.json")
-words_path = Path("words-short.txt")
-workers_count = 4
-
-arg_parser = argparse.ArgumentParser()
-arg_parser.add_argument("--hash", type=Path, default=hash_path)
-arg_parser.add_argument("--words", type=Path, default=words_path)
-arg_parser.add_argument("--workers", type=Path, default=workers_count)
 
 
 def data(dict_file: Path, chunk_count: int) -> Iterator[Task]:
@@ -35,14 +33,14 @@ def data(dict_file: Path, chunk_count: int) -> Iterator[Task]:
     chunk_size = math.ceil(len(lines) / chunk_count)
 
     for i in range(0, len(lines), chunk_size):
-        chunk = lines[i : i + chunk_size]
+        chunk = lines[i:i + chunk_size]
         yield Task(data=chunk)
 
 
 async def worker(context: WorkContext, tasks: AsyncIterable[Task]):
     async for task in tasks:
         context.send_json(str(WORDS_PATH), task.data)
-        context.send_file(str(hash_path), str(HASH_PATH))
+        context.send_file(str(args.hash), str(HASH_PATH))
 
         context.run("/golem/entrypoint/worker.py")
 
@@ -71,7 +69,7 @@ async def main():
 
     result = ""
     async with executor:
-        data_iterator = data(words_path, workers_count)
+        data_iterator = data(args.words, args.workers)
         async for task in executor.submit(worker, data_iterator):
             print(f"task computed: {task}, result: {task.result}")
 
@@ -86,8 +84,6 @@ async def main():
 
 if __name__ == "__main__":
     args = arg_parser.parse_args()
-    hash_path = args.hash
-    words_path = args.words
 
     loop = asyncio.get_event_loop()
     task = loop.create_task(main())
