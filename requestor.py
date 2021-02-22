@@ -99,3 +99,4 @@ if __name__ == "__main__":
         loop.run_until_complete(task)
     except KeyboardInterrupt:
         task.cancel()
+        loop.run_until_complete(task)
