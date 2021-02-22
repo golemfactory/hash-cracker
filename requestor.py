@@ -88,7 +88,12 @@ if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     task = loop.create_task(main())
 
-    enable_default_logger()
+    enable_default_logger(
+        log_file=args.log_file,
+        debug_activity_api=True,
+        debug_market_api=True,
+        debug_payment_api=True,
+    )
 
     try:
         loop.run_until_complete(task)
