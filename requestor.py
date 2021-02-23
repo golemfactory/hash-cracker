@@ -24,28 +24,27 @@ import worker
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument("--hash", type=Path, default=Path("hash.json"))
 arg_parser.add_argument("--words", type=Path, default=Path("words-short.txt"))
-arg_parser.add_argument("--workers", type=Path, default=2)
 
 args = argparse.Namespace()
 
 ENTRYPOINT_PATH = Path("/golem/entrypoint/worker.py")
 TASK_TIMEOUT = timedelta(minutes=10)
 
-
-def data(dict_file: Path, chunk_count: int) -> Iterator[Task]:
+def data(words_file: Path, chunk_size: int = 100_000) -> Iterator[Task]:
     """Split input data into chunks, each one being a single `Task` object.
 
-    A single provider may compute multiple `Task`s.
+    A single provider may compute multiple tasks.
     Return an iterator of `Task` objects.
     """
-    with dict_file.open() as f:
-        lines = [line.strip() for line in f]
-
-    chunk_size = math.ceil(len(lines) / chunk_count)
-
-    for i in range(0, len(lines), chunk_size):
-        chunk = lines[i : i + chunk_size]
-        yield Task(data=chunk)
+    with words_file.open() as f:
+        chunk = []
+        for line in f:
+            chunk.append(line.strip())
+            if len(chunk) == chunk_size:
+                yield Task(data=chunk)
+                chunk = []
+        if chunk:
+            yield Task(data=chunk)
 
 
 async def steps(context: WorkContext, tasks: AsyncIterable[Task]):
@@ -93,8 +92,7 @@ async def main():
 
     result = ""
     async with executor:
-        data_iterator = data(args.words, args.workers)
-        async for task in executor.submit(steps, data_iterator):
+        async for task in executor.submit(steps, data(args.words)):
             # Every task object we receive here represents a computed task
             print(f"task computed: {task}, result: {task.result}")
 
