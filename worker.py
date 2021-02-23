@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""
+This file contains the script that will be run on provider nodes executing our task.
+It is included in the image built from this project's Dockerfile.
+"""
 
 import json
 from hashlib import sha256
