@@ -11,11 +11,16 @@ from typing import List
 
 ENCODING = "utf-8"
 
+ENTRYPOINT_PATH = Path("/golem/entrypoint/worker.py")
+
 HASH_PATH = Path("/golem/input/hash.json")
 WORDS_PATH = Path("/golem/input/words.json")
 RESULT_PATH = Path("/golem/output/result.json")
 
 if __name__ == "__main__":
+    if not ENTRYPOINT_PATH.exists():
+        raise RuntimeError("Entrypoint path does not exist: %s", ENTRYPOINT_PATH)
+
     result = ""
 
     with HASH_PATH.open() as f:
