@@ -2,7 +2,7 @@
 """
 This file contains the requestor part of our application. There are three areas here:
 1. Splitting the data into multiple tasks, each of which can be executed by a provider.
-2. Defining what data needs to be transferred to and from each provider's VM.
+2. Defining what commands must be run within the provider's VM.
 3. Scheduling the tasks via a yagna node running locally.
 """
 
