@@ -28,6 +28,7 @@ arg_parser.add_argument("--workers", type=Path, default=2)
 
 args = argparse.Namespace()
 
+ENTRYPOINT_PATH = Path("/golem/entrypoint/worker.py")
 TASK_TIMEOUT = timedelta(minutes=10)
 
 
@@ -60,7 +61,7 @@ async def steps(context: WorkContext, tasks: AsyncIterable[Task]):
     async for task in tasks:
         context.send_json(str(worker.WORDS_PATH), task.data)
 
-        context.run(str(worker.ENTRYPOINT_PATH))
+        context.run(str(ENTRYPOINT_PATH))
 
         # Create a temporary file to avoid overwriting incoming results
         output_file = NamedTemporaryFile()
