@@ -29,10 +29,14 @@ arg_parser.add_argument("--workers", type=Path, default=2)
 args = argparse.Namespace()
 
 TASK_TIMEOUT = timedelta(minutes=10)
-WORKER_TIMEOUT = timedelta(seconds=120)
 
 
 def data(dict_file: Path, chunk_count: int) -> Iterator[Task]:
+    """Split input data into chunks, each one being a single `Task` object.
+
+    A single provider may compute multiple `Task`s.
+    Return an iterator of `Task` objects.
+    """
     with dict_file.open() as f:
         lines = [line.strip() for line in f]
 
@@ -44,6 +48,13 @@ def data(dict_file: Path, chunk_count: int) -> Iterator[Task]:
 
 
 async def worker(context: WorkContext, tasks: AsyncIterable[Task]):
+    """Prepare a sequence of steps which need to happen for a task to be computed.
+
+    `WorkContext` is a utility which allows us to define a series of commands to
+    interact with a provider.
+    Tasks are provided from a common, asynchronous queue.
+    The signature of this function cannot change, as it's used internally by `Executor`.
+    """
     async for task in tasks:
         context.send_json(str(WORDS_PATH), task.data)
         context.send_file(str(args.hash), str(HASH_PATH))
@@ -53,12 +64,15 @@ async def worker(context: WorkContext, tasks: AsyncIterable[Task]):
         output_file = NamedTemporaryFile()
         context.download_file(str(RESULT_PATH), output_file.name)
 
-        yield context.commit(timeout=WORKER_TIMEOUT)
+        # Pass the prepared sequence of steps to Executor
+        yield context.commit()
+
         task.accept_result(result=json.load(output_file))
         output_file.close()
 
 
 async def main():
+    # Set of parameters for the VM run by each of the providers
     package = await vm.repo(
         image_hash="1e53d1f82b4c49b111196fcb4653fce31face122a174d9c60d06cf9a",
         min_mem_gib=1.0,
@@ -77,6 +91,7 @@ async def main():
     async with executor:
         data_iterator = data(args.words, args.workers)
         async for task in executor.submit(worker, data_iterator):
+            # Every task object we receive here represents a computed task
             print(f"task computed: {task}, result: {task.result}")
 
             if task.result:
@@ -94,15 +109,12 @@ if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     task = loop.create_task(main())
 
-    enable_default_logger(
-        log_file=args.log_file,
-        debug_activity_api=True,
-        debug_market_api=True,
-        debug_payment_api=True,
-    )
+    # yapapi debug logging to a file
+    enable_default_logger(log_file="yapapi.log")
 
     try:
         loop.run_until_complete(task)
     except KeyboardInterrupt:
+        # Make sure Executor is closed gracefully before exiting
         task.cancel()
         loop.run_until_complete(task)
