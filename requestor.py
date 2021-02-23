@@ -21,10 +21,12 @@ from yapapi.package import vm
 
 import worker
 
+# CLI arguments definition
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument("--hash", type=Path, default=Path("hash.json"))
 arg_parser.add_argument("--words", type=Path, default=Path("words-short.txt"))
 
+# Container object for parsed arguments
 args = argparse.Namespace()
 
 ENTRYPOINT_PATH = Path("/golem/entrypoint/worker.py")
