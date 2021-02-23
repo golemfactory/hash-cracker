@@ -19,7 +19,7 @@ from yapapi import Executor, Task, WorkContext
 from yapapi.log import enable_default_logger, log_event_repr, log_summary
 from yapapi.package import vm
 
-from worker import HASH_PATH, WORDS_PATH, RESULT_PATH
+import worker
 
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument("--hash", type=Path, default=Path("hash.json"))
@@ -47,7 +47,7 @@ def data(dict_file: Path, chunk_count: int) -> Iterator[Task]:
         yield Task(data=chunk)
 
 
-async def worker(context: WorkContext, tasks: AsyncIterable[Task]):
+async def steps(context: WorkContext, tasks: AsyncIterable[Task]):
     """Prepare a sequence of steps which need to happen for a task to be computed.
 
     `WorkContext` is a utility which allows us to define a series of commands to
@@ -55,18 +55,21 @@ async def worker(context: WorkContext, tasks: AsyncIterable[Task]):
     Tasks are provided from a common, asynchronous queue.
     The signature of this function cannot change, as it's used internally by `Executor`.
     """
+    context.send_file(str(args.hash), str(worker.HASH_PATH))
+
     async for task in tasks:
-        context.send_json(str(WORDS_PATH), task.data)
-        context.send_file(str(args.hash), str(HASH_PATH))
+        context.send_json(str(worker.WORDS_PATH), task.data)
 
-        context.run("/golem/entrypoint/worker.py")
+        context.run(str(worker.ENTRYPOINT_PATH))
 
+        # Create a temporary file to avoid overwriting incoming results
         output_file = NamedTemporaryFile()
-        context.download_file(str(RESULT_PATH), output_file.name)
+        context.download_file(str(worker.RESULT_PATH), output_file.name)
 
         # Pass the prepared sequence of steps to Executor
         yield context.commit()
 
+        # Mark task as accepted and set its result
         task.accept_result(result=json.load(output_file))
         output_file.close()
 
@@ -90,7 +93,7 @@ async def main():
     result = ""
     async with executor:
         data_iterator = data(args.words, args.workers)
-        async for task in executor.submit(worker, data_iterator):
+        async for task in executor.submit(steps, data_iterator):
             # Every task object we receive here represents a computed task
             print(f"task computed: {task}, result: {task.result}")
 
