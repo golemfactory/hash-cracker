@@ -23,8 +23,8 @@ import worker
 
 # CLI arguments definition
 arg_parser = argparse.ArgumentParser()
-arg_parser.add_argument("--hash", type=Path, default=Path("hash.json"))
-arg_parser.add_argument("--words", type=Path, default=Path("words-short.txt"))
+arg_parser.add_argument("--hash", type=Path, default=Path("data/hash.json"))
+arg_parser.add_argument("--words", type=Path, default=Path("data/words.txt"))
 
 # Container object for parsed arguments
 args = argparse.Namespace()
