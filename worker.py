@@ -5,7 +5,6 @@ It is included in the image built from this project's Dockerfile.
 """
 
 import json
-from hashlib import sha256
 from pathlib import Path
 from typing import List
 
@@ -23,12 +22,7 @@ if __name__ == "__main__":
 
     with WORDS_PATH.open() as f:
         words: List[str] = json.load(f)
-        for line in words:
-            line_bytes = bytes(line.strip(), ENCODING)
-            line_hash = sha256(line_bytes).hexdigest()
-            if line_hash == target_hash:
-                result = line
-                break
+        # TODO Compare target hash with sha256 of each word
 
     with RESULT_PATH.open(mode="w", encoding=ENCODING) as f:
         json.dump(result, f)

@@ -9,14 +9,11 @@ This file contains the requestor part of our application. There are three areas 
 import argparse
 import asyncio
 from datetime import timedelta
-import json
-import math
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 from typing import AsyncIterable, Iterator
 
-from yapapi import Executor, Task, WorkContext
-from yapapi.log import enable_default_logger, log_event_repr, log_summary
+from yapapi import Task, WorkContext
+from yapapi.log import enable_default_logger
 from yapapi.package import vm
 
 import worker
@@ -39,16 +36,7 @@ def data(words_file: Path, chunk_size: int = 100_000) -> Iterator[Task]:
     A single provider may compute multiple tasks.
     Return an iterator of `Task` objects.
     """
-    with words_file.open() as f:
-        chunk = []
-        for line in f:
-            chunk.append(line.strip())
-            if len(chunk) == chunk_size:
-                yield Task(data=chunk)
-                chunk = []
-        if chunk:
-            yield Task(data=chunk)
-
+    # TODO
 
 async def steps(context: WorkContext, tasks: AsyncIterable[Task]):
     """Prepare a sequence of steps which need to happen for a task to be computed.
@@ -58,24 +46,7 @@ async def steps(context: WorkContext, tasks: AsyncIterable[Task]):
     Tasks are provided from a common, asynchronous queue.
     The signature of this function cannot change, as it's used internally by `Executor`.
     """
-    context.send_file(str(args.hash), str(worker.HASH_PATH))
-
-    async for task in tasks:
-        context.send_json(str(worker.WORDS_PATH), task.data)
-
-        context.run(str(ENTRYPOINT_PATH))
-
-        # Create a temporary file to avoid overwriting incoming results
-        output_file = NamedTemporaryFile()
-        context.download_file(str(worker.RESULT_PATH), output_file.name)
-
-        # Pass the prepared sequence of steps to Executor
-        yield context.commit()
-
-        # Mark task as accepted and set its result
-        task.accept_result(result=json.load(output_file))
-        output_file.close()
-
+    # TODO
 
 async def main():
     # Set of parameters for the VM run by each of the providers
@@ -85,28 +56,7 @@ async def main():
         min_storage_gib=2.0,
     )
 
-    executor = Executor(
-        package=package,
-        budget=1,
-        subnet_tag=args.subnet,
-        event_consumer=log_summary(log_event_repr),
-        timeout=TASK_TIMEOUT,
-    )
-
-    result = ""
-    async with executor:
-        async for task in executor.submit(steps, data(args.words)):
-            # Every task object we receive here represents a computed task
-            if task.result:
-                result = task.result
-                # Exit early once a matching word is found
-                break
-
-        if result:
-            print(f"Found matching word: {result}")
-        else:
-            print("No matching words found.")
-
+    # TODO Run Executor using data and steps functions
 
 if __name__ == "__main__":
     args = arg_parser.parse_args()
