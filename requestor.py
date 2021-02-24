@@ -24,6 +24,7 @@ import worker
 # CLI arguments definition
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument("--hash", type=Path, default=Path("data/hash.json"))
+arg_parser.add_argument("--subnet", type=str, default="devnet-beta.1")
 arg_parser.add_argument("--words", type=Path, default=Path("data/words.txt"))
 
 # Container object for parsed arguments
@@ -87,7 +88,7 @@ async def main():
     executor = Executor(
         package=package,
         budget=1,
-        subnet_tag="devnet-beta.1",
+        subnet_tag=args.subnet,
         event_consumer=log_summary(log_event_repr),
         timeout=TASK_TIMEOUT,
     )
@@ -96,8 +97,6 @@ async def main():
     async with executor:
         async for task in executor.submit(steps, data(args.words)):
             # Every task object we receive here represents a computed task
-            print(f"task computed: {task}, result: {task.result}")
-
             if task.result:
                 result = task.result
 
