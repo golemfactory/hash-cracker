@@ -18,7 +18,7 @@ from worker import HASH_PATH, WORDS_PATH, RESULT_PATH
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument("--hash", type=Path, default=Path("hash.json"))
 arg_parser.add_argument("--words", type=Path, default=Path("words-short.txt"))
-arg_parser.add_argument("--workers", type=Path, default=2)
+arg_parser.add_argument("--workers", type=int, default=20)
 
 args = argparse.Namespace()
 
@@ -40,7 +40,7 @@ def data(dict_file: Path, chunk_count: int) -> Iterator[Task]:
 async def worker(context: WorkContext, tasks: AsyncIterable[Task]):
     async for task in tasks:
         context.send_json(str(WORDS_PATH), task.data)
-        context.send_file(str(args.hash), str(HASH_PATH))
+        context.send_file(str(args.hash), str(RESULT_PATH))
 
         context.run("/golem/entrypoint/worker.py")
 
@@ -65,6 +65,7 @@ async def main():
         subnet_tag="devnet-beta.1",
         event_consumer=log_summary(log_event_repr),
         timeout=TASK_TIMEOUT,
+        max_workers=args.workers,
     )
 
     result = ""
