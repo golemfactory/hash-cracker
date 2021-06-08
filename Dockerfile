@@ -4,8 +4,6 @@
 # We're using python slim image in this example to limit the time it takes for the
 # resultant image to be first downloaded by providers, given the fact that our example
 # here is limited to barebones Python installation.
-#
-# In a production app, one might wish to utilize a more full-featured Python image.
 FROM python:3.8.7-slim
 
 VOLUME /golem/input /golem/output
