@@ -97,6 +97,7 @@ async def main():
             payload=package,
             timeout=TASK_TIMEOUT
         ):
+            # Every task object we receive here represents a computed task
             if task.result:
                 result = task.result
                 # Exit early once a matching word is found
