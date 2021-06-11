@@ -17,7 +17,7 @@ from typing import AsyncIterable, Iterator
 
 from yapapi import Golem, Task, WorkContext
 from yapapi.log import enable_default_logger
-from yapapi.package import vm
+from yapapi.payload import vm
 
 import worker
 
