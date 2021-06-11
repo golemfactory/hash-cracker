@@ -14,14 +14,14 @@ from typing import AsyncIterable, Iterator
 
 from yapapi import Task, WorkContext
 from yapapi.log import enable_default_logger
-from yapapi.package import vm
+from yapapi.payload import vm
 
 import worker
 
 # CLI arguments definition
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument("--hash", type=Path, default=Path("data/hash.json"))
-arg_parser.add_argument("--subnet", type=str, default="devnet-beta.1")
+arg_parser.add_argument("--subnet", type=str, default="devnet-beta.2")
 arg_parser.add_argument("--words", type=Path, default=Path("data/words.txt"))
 
 # Container object for parsed arguments
