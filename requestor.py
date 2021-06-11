@@ -87,9 +87,9 @@ async def main():
         min_storage_gib=2.0,
     )
 
-    result = ""
-
     async with Golem(budget=1, subnet_tag=args.subnet) as golem:
+
+        result = ""
 
         async for task in golem.execute_tasks(
             steps,
@@ -102,10 +102,10 @@ async def main():
                 # Exit early once a matching word is found
                 break
 
-    if result:
-        print(f"Found matching word: {result}")
-    else:
-        print("No matching words found.")
+        if result:
+            print(f"Found matching word: {result}")
+        else:
+            print("No matching words found.")
 
 
 if __name__ == "__main__":
