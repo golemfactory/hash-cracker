@@ -15,9 +15,9 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import AsyncIterable, Iterator
 
-from yapapi import Executor, Task, WorkContext
-from yapapi.log import enable_default_logger, log_event_repr, log_summary
-from yapapi.package import vm
+from yapapi import Golem, Task, WorkContext
+from yapapi.log import enable_default_logger
+from yapapi.payload import vm
 
 import worker
 
@@ -32,6 +32,7 @@ args = argparse.Namespace()
 
 ENTRYPOINT_PATH = Path("/golem/entrypoint/worker.py")
 TASK_TIMEOUT = timedelta(minutes=10)
+
 
 def data(words_file: Path, chunk_size: int = 100_000) -> Iterator[Task]:
     """Split input data into chunks, each one being a single `Task` object.
@@ -78,6 +79,7 @@ async def steps(context: WorkContext, tasks: AsyncIterable[Task]):
 
 
 async def main():
+
     # Set of parameters for the VM run by each of the providers
     package = await vm.repo(
         image_hash="1e53d1f82b4c49b111196fcb4653fce31face122a174d9c60d06cf9a",
@@ -85,27 +87,25 @@ async def main():
         min_storage_gib=2.0,
     )
 
-    executor = Executor(
-        package=package,
-        budget=1,
-        subnet_tag=args.subnet,
-        event_consumer=log_summary(log_event_repr),
-        timeout=TASK_TIMEOUT,
-    )
-
     result = ""
-    async with executor:
-        async for task in executor.submit(steps, data(args.words)):
-            # Every task object we receive here represents a computed task
+
+    async with Golem(budget=1, subnet_tag=args.subnet) as golem:
+
+        async for task in golem.execute_tasks(
+            steps,
+            data(args.words),
+            payload=package,
+            timeout=TASK_TIMEOUT
+        ):
             if task.result:
                 result = task.result
                 # Exit early once a matching word is found
                 break
 
-        if result:
-            print(f"Found matching word: {result}")
-        else:
-            print("No matching words found.")
+    if result:
+        print(f"Found matching word: {result}")
+    else:
+        print("No matching words found.")
 
 
 if __name__ == "__main__":
