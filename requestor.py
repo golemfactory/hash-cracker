@@ -24,7 +24,7 @@ import worker
 # CLI arguments definition
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument("--hash", type=Path, default=Path("data/hash.json"))
-arg_parser.add_argument("--subnet", type=str, default="devnet-beta.1")
+arg_parser.add_argument("--subnet", type=str, default="devnet-beta.2")
 arg_parser.add_argument("--words", type=Path, default=Path("data/words.txt"))
 
 # Container object for parsed arguments
@@ -87,9 +87,9 @@ async def main():
         min_storage_gib=2.0,
     )
 
-    result = ""
-
     async with Golem(budget=1, subnet_tag=args.subnet) as golem:
+
+        result = ""
 
         async for task in golem.execute_tasks(
             steps,
@@ -97,15 +97,16 @@ async def main():
             payload=package,
             timeout=TASK_TIMEOUT
         ):
+            # Every task object we receive here represents a computed task
             if task.result:
                 result = task.result
                 # Exit early once a matching word is found
                 break
 
-    if result:
-        print(f"Found matching word: {result}")
-    else:
-        print("No matching words found.")
+        if result:
+            print(f"Found matching word: {result}")
+        else:
+            print("No matching words found.")
 
 
 if __name__ == "__main__":
