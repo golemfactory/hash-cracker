@@ -30,5 +30,5 @@ if __name__ == "__main__":
                 result = line
                 break
 
-    with open(RESULT_PATH, mode='w', encoding=ENCODING) as f:
+    with open(RESULT_PATH, mode="w", encoding=ENCODING) as f:
         json.dump(result, f)

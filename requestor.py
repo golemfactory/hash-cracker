@@ -98,10 +98,7 @@ async def main():
         result = ""
 
         async for task in golem.execute_tasks(
-            steps,
-            data(args.words),
-            payload=package,
-            timeout=TASK_TIMEOUT
+            steps, data(args.words), payload=package, timeout=TASK_TIMEOUT
         ):
             # Every task object we receive here represents a computed task
             if task.result:
