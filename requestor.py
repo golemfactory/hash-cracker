@@ -30,7 +30,7 @@ arg_parser.add_argument("--words", type=Path, default=Path("data/words.txt"))
 # Container object for parsed arguments
 args = argparse.Namespace()
 
-ENTRYPOINT_PATH = Path("/golem/entrypoint/worker.py")
+ENTRYPOINT_PATH = "/golem/entrypoint/worker.py"
 TASK_TIMEOUT = timedelta(minutes=10)
 
 
@@ -59,16 +59,16 @@ async def steps(context: WorkContext, tasks: AsyncIterable[Task]):
     Tasks are provided from a common, asynchronous queue.
     The signature of this function cannot change, as it's used internally by `Executor`.
     """
-    context.send_file(str(args.hash), str(worker.HASH_PATH))
+    context.send_file(str(args.hash), worker.HASH_PATH)
 
     async for task in tasks:
-        context.send_json(str(worker.WORDS_PATH), task.data)
+        context.send_json(worker.WORDS_PATH, task.data)
 
-        context.run(str(ENTRYPOINT_PATH))
+        context.run(ENTRYPOINT_PATH)
 
         # Create a temporary file to avoid overwriting incoming results
         output_file = NamedTemporaryFile()
-        context.download_file(str(worker.RESULT_PATH), output_file.name)
+        context.download_file(worker.RESULT_PATH, output_file.name)
 
         # Pass the prepared sequence of steps to Executor
         yield context.commit()
