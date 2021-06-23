@@ -34,6 +34,7 @@ args = argparse.Namespace()
 ENTRYPOINT_PATH = "/golem/entrypoint/worker.py"
 TASK_TIMEOUT = timedelta(minutes=10)
 
+
 def data(words_file: Path, chunk_size: int = 100_000) -> Iterator[Task]:
     """Split input data into chunks, each one being a single `Task` object.
 
