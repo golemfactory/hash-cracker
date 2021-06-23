@@ -11,17 +11,17 @@ from typing import List
 
 ENCODING = "utf-8"
 
-HASH_PATH = Path("/golem/input/hash.json")
-WORDS_PATH = Path("/golem/input/words.json")
-RESULT_PATH = Path("/golem/output/result.json")
+HASH_PATH = "/golem/input/hash.json"
+WORDS_PATH = "/golem/input/words.json"
+RESULT_PATH = "/golem/output/result.json"
 
 if __name__ == "__main__":
     result = ""
 
-    with HASH_PATH.open() as f:
+    with open(HASH_PATH) as f:
         target_hash: str = json.load(f)
 
-    with WORDS_PATH.open() as f:
+    with open(WORDS_PATH) as f:
         words: List[str] = json.load(f)
         for line in words:
             line_bytes = bytes(line.strip(), ENCODING)
@@ -30,5 +30,5 @@ if __name__ == "__main__":
                 result = line
                 break
 
-    with RESULT_PATH.open(mode="w", encoding=ENCODING) as f:
+    with open(RESULT_PATH, mode="w", encoding=ENCODING) as f:
         json.dump(result, f)
