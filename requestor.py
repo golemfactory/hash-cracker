@@ -12,8 +12,9 @@ from datetime import timedelta
 import json
 import math
 from pathlib import Path
-from tempfile import NamedTemporaryFile
+from tempfile import gettempdir
 from typing import AsyncIterable, Iterator
+from uuid import uuid4
 
 from yapapi import Golem, Task, WorkContext
 from yapapi.log import enable_default_logger
@@ -30,7 +31,7 @@ arg_parser.add_argument("--words", type=Path, default=Path("data/words.txt"))
 # Container object for parsed arguments
 args = argparse.Namespace()
 
-ENTRYPOINT_PATH = Path("/golem/entrypoint/worker.py")
+ENTRYPOINT_PATH = "/golem/entrypoint/worker.py"
 TASK_TIMEOUT = timedelta(minutes=10)
 
 
@@ -59,23 +60,28 @@ async def steps(context: WorkContext, tasks: AsyncIterable[Task]):
     Tasks are provided from a common, asynchronous queue.
     The signature of this function cannot change, as it's used internally by `Executor`.
     """
-    context.send_file(str(args.hash), str(worker.HASH_PATH))
+    context.send_file(str(args.hash), worker.HASH_PATH)
 
     async for task in tasks:
-        context.send_json(str(worker.WORDS_PATH), task.data)
+        context.send_json(worker.WORDS_PATH, task.data)
 
-        context.run(str(ENTRYPOINT_PATH))
+        context.run(ENTRYPOINT_PATH)
 
         # Create a temporary file to avoid overwriting incoming results
-        output_file = NamedTemporaryFile()
-        context.download_file(str(worker.RESULT_PATH), output_file.name)
+        output_file = Path(gettempdir()) / str(uuid4())
+        try:
+            context.download_file(worker.RESULT_PATH, str(output_file))
 
-        # Pass the prepared sequence of steps to Executor
-        yield context.commit()
+            # Pass the prepared sequence of steps to Executor
+            yield context.commit()
 
-        # Mark task as accepted and set its result
-        task.accept_result(result=json.load(output_file))
-        output_file.close()
+            # Mark task as accepted and set its result
+            with output_file.open() as f:
+                task.accept_result(result=json.load(f))
+        finally:
+            # Remove output file once it's no longer required
+            if output_file.exists():
+                output_file.unlink()
 
 
 async def main():
@@ -92,10 +98,7 @@ async def main():
         result = ""
 
         async for task in golem.execute_tasks(
-            steps,
-            data(args.words),
-            payload=package,
-            timeout=TASK_TIMEOUT
+            steps, data(args.words), payload=package, timeout=TASK_TIMEOUT
         ):
             # Every task object we receive here represents a computed task
             if task.result:
