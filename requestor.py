@@ -55,25 +55,26 @@ def data(words_file: Path, chunk_size: int = 100_000) -> Iterator[Task]:
 async def steps(context: WorkContext, tasks: AsyncIterable[Task]):
     """Prepare a sequence of steps which need to happen for a task to be computed.
 
-    `WorkContext` is a utility which allows us to define a series of commands to
-    interact with a provider.
+    `Script` is a utility which allows us to define a series of commands to interact
+    with a provider. It's created using the provided `WorkContext` instance.
     Tasks are provided from a common, asynchronous queue.
     The signature of this function cannot change, as it's used internally by `Executor`.
     """
-    context.send_file(str(args.hash), worker.HASH_PATH)
+    script = context.new_script(timeout=timedelta(minutes=5))
+    script.upload_file(str(args.hash), worker.HASH_PATH)
 
     async for task in tasks:
-        context.send_json(worker.WORDS_PATH, task.data)
+        script.upload_json(task.data, worker.WORDS_PATH)
 
-        context.run(ENTRYPOINT_PATH)
+        script.run(ENTRYPOINT_PATH)
 
         # Create a temporary file to avoid overwriting incoming results
         output_file = Path(gettempdir()) / str(uuid4())
         try:
-            context.download_file(worker.RESULT_PATH, str(output_file))
+            script.download_file(worker.RESULT_PATH, str(output_file))
 
             # Pass the prepared sequence of steps to Executor
-            yield context.commit()
+            yield script
 
             # Mark task as accepted and set its result
             with output_file.open() as f:
@@ -83,9 +84,11 @@ async def steps(context: WorkContext, tasks: AsyncIterable[Task]):
             if output_file.exists():
                 output_file.unlink()
 
+        # Re-initialize the script so that `upload_file` is executed only once per worker
+        script = context.new_script(timeout=timedelta(minutes=5))
+
 
 async def main():
-
     # Set of parameters for the VM run by each of the providers
     package = await vm.repo(
         image_hash="1e53d1f82b4c49b111196fcb4653fce31face122a174d9c60d06cf9a",
@@ -94,7 +97,6 @@ async def main():
     )
 
     async with Golem(budget=1, subnet_tag=args.subnet) as golem:
-
         result = ""
 
         async for task in golem.execute_tasks(
